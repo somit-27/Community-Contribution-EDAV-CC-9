@@ -1,0 +1,97 @@
+---
+title: "Community Contribution"
+author: "Somit Jain(sj3396) Shashwat Kumar(sk5520)"
+date: "11/06/2024"
+output: html_document
+runtime: shiny_prerendered
+---
+<style>
+  .shiny-frame{
+  height:650px;
+  width: 1500px;
+  margin-left: 0;
+  }
+  .container-fluid{
+  margin-left: 0;
+  }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r eruptions, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(shiny)
+library(shinydashboard)
+library(datasets)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+data = read.csv("parkinsons.csv")
+# View(data)
+ui <- dashboardPage(
+  dashboardHeader(title = "Community Contribution sj3396 sk5520"),
+  dashboardSidebar(
+    checkboxGroupInput("status", "Choose a status", choices = unique(data$status), selected = c("1","0")),
+    sliderInput("Spread1", "Choose spread 1:", min = min(data$spread1), max = max(data$spread1), value = c(-7.964984,-2.434031)),
+    sliderInput("Spread2", "Choose spread 2:", min = min(data$spread2), max = max(data$spread2), value = c(0.006274,0.450493)),
+    selectInput("MDVP", "Select MDVP measure:",
+                choices = c("MDVP.Fo.Hz.", "MDVP.Fhi.Hz.", "MDVP.Flo.Hz.", "MDVP.Jitter...", "MDVP.Jitter.Abs.",
+                            "MDVP.RAP", "MDVP.PPQ", "Jitter.DDP", "MDVP.Shimmer", "MDVP.Shimmer.dB.", "Shimmer.APQ3",
+                            "Shimmer.APQ5", "MDVP.APQ", "Shimmer.DDA", "NHR", "HNR"))
+  ),
+  dashboardBody(
+    fluidRow(
+      box(plotOutput("plot1", height = 250)),
+      box(plotOutput("plot2", height = 250)),
+      box(plotOutput("plot3", height = 250)),
+      box(plotOutput("plot4", height = 250))
+    )
+  )
+)
+server <- function(input, output) { 
+  filter_data <- reactive({
+    data %>% 
+      filter(spread1 >= input$Spread1[1] & spread1 <= input$Spread1[2]) %>%
+      filter(spread2 >= input$Spread2[1] & spread2 <= input$Spread2[2]) %>%
+      filter(status %in% input$status)
+  })
+  
+  output$plot1 <- renderPlot({
+    ggplot(filter_data(), aes(x = MDVP.Fo.Hz., y = MDVP.Fhi.Hz., color = status)) +
+      geom_point()
+  })
+  
+  output$plot2 <- renderPlot({
+    ggplot(filter_data(), aes(x = !!sym(input$MDVP), fill = status)) +
+      geom_histogram(aes(group = status), position = 'dodge', alpha = 0.5, bins = 30)
+  })
+  
+  output$plot3 <- renderPlot({
+    ggplot(filter_data(), aes(x = MDVP.Jitter..., y = MDVP.Jitter.Abs., color = status)) +
+      geom_point(shape = 23) +
+      labs(x = 'MDVP Jitter %', y = 'MDVP Jitter Abs') +
+      ggtitle('Scatterplot of MDVP Jitter Measures for Parkinsons dataset')
+  })
+  output$plot4 <- renderPlot({
+    ggplot(melt(select(filter_data(),!!sym(input$MDVP))), aes(x = variable, y = value)) +
+      geom_boxplot() +
+      ggtitle('Boxplot of MDVP Measures for Parkinsons dataset')
+  })
+}
+
+shinyApp(ui, server)
+
+
+```
+
+
+```{r tabsets, echo=FALSE, include=FALSE}
+shinyAppDir(
+  system.file("examples/06_tabsets", package = "shiny"),
+  options = list(
+    width = "100%", height = 550
+  )
+)
+```
+
